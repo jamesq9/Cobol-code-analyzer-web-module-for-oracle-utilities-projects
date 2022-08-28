@@ -7,6 +7,6 @@ This software can be used for Oracle Utilties Cobol upgrade Projects where it is
 
 - Place all the cobol code in the CobolCM folder
 - Run the COBOL-WEB-MODULE.jar file and follow its instructions 
-  - Make sure to analyze the code first and generate assests for each file.
+  - Make sure to run the analyzer first and generate assests for each file.
 
 A Collegue of mine helped me in this project, I'm yet to find him on github and give him credit for his work on the Pictorial tree view of the control flows. This is the place holder for that. 
