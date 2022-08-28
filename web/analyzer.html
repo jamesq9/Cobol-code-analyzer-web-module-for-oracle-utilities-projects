@@ -1,0 +1,281 @@
+<!doctype html>
+<html class="no-js" lang="">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="x-ua-compatible" content="ie=edge">
+		<title></title>
+		<meta name="description" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<style>
+			pre {
+				margin: 3px 0px;
+				font-size: 13px;
+			}
+			
+			.keyword {
+				color: blue;
+				font-style: bold;
+			}
+			
+			.program {
+				color: red;
+			}
+			
+			.comment {
+				font-style: italic;
+				color: green;
+				font-size: 13px;
+			}
+			
+			.sectionName {
+				color: orange;
+				font-style: bold;
+				cursor: pointer;
+				user-select: all;
+				-moz-user-select: all;
+				-webkit-user-select: all;
+			}
+			
+			.hidedata {
+				display: none;
+			}
+			
+			.spotlight {
+				color: black;
+				font-weight: bold;
+			}
+			
+			.left-side-pane {
+				overflow: auto;
+				height: 95%;
+				padding-right: 10px;
+			}
+			
+			.right-side-pane {
+				width: 40%;
+				height: 95%;
+				display: block;
+				//border: 1px solid grey;
+				position: fixed;
+				top: 1px;
+				margin-top: -10px; 
+				right: 20px;
+				float: left;
+				overflow: auto;
+			}
+			
+			li {
+				font-size: 13px;
+			}
+			
+			li > a {
+				color: orange;
+			}
+			
+			input[type=checkbox]{
+				margin: 0px;
+				padding: 0px;
+				width:10px; 
+				height:10px;
+			}
+			
+			.graphButton {
+				margin: 4px;
+				margin-left: 4px;
+				color: white;
+				background-color: #008CBA;
+				border: none;
+				padding: 3px 3px;
+				border-radius: 5px;
+			}
+						
+		</style>
+	</head>
+	<body>
+	
+		<div id="app">
+			<div class="left-side-pane">
+				<div class="line"  v-for="line in codelines" v-if="line">
+						<div :id="line.lno">
+							<pre v-html="line.l"  v-bind:class="{comment: line.isc, spotlight: line.iss, notBranch: line.isC }"></pre> 
+						</div>
+				</div>
+			</div>
+			
+			<div class="right-side-pane">
+				<h3>Sections:</h3>
+				<div class="otherOptions"> 
+					<input type="checkbox" @click="branchingTime($event)"/><span> Show Only Branchings</span><br>
+					<input type="checkbox" @click="commentsTime($event)"/><span> Hide Comments</span> 
+					<input class= "graphButton" type="button" value="Graph" @click="showGraph($event)"/>
+					<input class= "graphButton" type="button" value="FlowChart" @click="showFlowChart($event)"/>
+					<input class= "graphButton" type="button" value="Collapsible" @click="showFlowChart2($event)"/>
+				</div>
+				<div v-bind:class="{hidedata : isfocus}">
+				<ol>
+					<li v-for="i in index" >
+						<input type="checkbox" :name="i.sn" :value="i.sn" @click="focusTime($event)"/>
+						<a :href="'#' + (i.lno - 5)" :id="i.sn">{{i.sn}} </a> 
+					</li>
+				</ol>
+				</div>
+				
+				
+				<ul v-if="isfocus">
+					<li v-for="i in sectionCalledBy">
+					<input type="checkbox" :name="i.sn" :value="i.sn" @click="focusTime($event)" /> 
+							<a :href="'#' + (i.lno - 5)">{{i.sn}} </a> 
+					</li>						
+				</ul>
+				<ul  v-if="isfocus">  
+					<li> 
+						<input type="checkbox" @click="unFocus($event)" checked="true"/> 
+						<a :href="focusLine" >{{focusOn}} 
+						</a>
+						<ul>
+							<li v-for="i in sectionCalls[focusOn]">
+								<input type="checkbox" :name="i" :value="i" @click="focusTime($event)" /> 
+								<a :href="'#' + getLineNumber(i)">{{i}} </a> 
+						
+							</li>
+						</ul>
+					</li>
+				</ul>
+				
+				
+			</div>
+		</div>
+		
+		<script src="js/jquery.js"></script>
+		<script src="js/vue.js"></script>
+		<script>
+			var app = new Vue({
+			  el: '#app',
+			  data: {
+				codelines: [],
+				index: [],
+				sectionCalls: {},
+				sectionCallsAt: {},
+				sectionCalledBy: [],
+				isfocus: false,
+				focusOn : null,
+				focusLine: 0,
+				onlyBranching: false,
+				hideComments: false,
+				pgName: null
+			  },
+			  methods: {
+				setAllValues: function (cl ,ind, sc, sca, progName) {
+					this.codelines = cl;
+					this.index = ind;
+					this.sectionCalls = sc;
+					this.sectionCallsAt = sca;
+					this.sectionCalledBy = [];
+					this.pgName = progName;
+				},
+				focusTime: function(e) {
+					e.preventDefault();
+					this.focusOn = e.target.name;
+					this.isfocus = true;
+					this.focusLine = e.target.nextElementSibling.href;
+					this.sectionCalledBy = [];
+					for(var i in this.sectionCallsAt) {
+						var key  = i;
+						var val = this.sectionCallsAt[i];
+						if(key.endsWith(this.focusOn)) {
+							var obj = key.split(this.focusOn)[0];
+							this.sectionCalledBy.push({"sn": obj, "lno": this.sectionCallsAt[key]});
+						}
+					}
+					
+
+				},
+				branchingTime: function(e) {
+					//e.preventDefault();
+					this.onlyBranching = !this.onlyBranching;
+					var all = document.getElementsByClassName('notBranch');
+					for (var i = 0; i < all.length; i++) {
+					  if(this.onlyBranching) all[i].style.display = 'none';
+					  else all[i].style.display = '';
+					}
+				},
+				commentsTime: function(e) {
+					this.hideComments = !this.hideComments;
+					var all = document.getElementsByClassName('comment');
+					for (var i = 0; i < all.length; i++) {
+					  if(this.hideComments) all[i].style.display = 'none';
+					  else all[i].style.display = '';
+					}
+				},
+				unFocus: function(e) {
+					this.focusOn = null;
+					this.isfocus = false;
+					this.focusLine = 0;
+					this.sectionCalledBy = [];
+				},
+				getLineNumber: function(i) {
+					return this.sectionCallsAt[this.focusOn+i]-5
+				},
+				get5Minus: function(i) {
+					//console.log(i);
+					return i-5;
+				},
+				showGraph: function(e) {
+					localStorage.setItem("gn",this.pgName);
+					window.open('/graph.html', '_blank');
+					
+					return;
+				},
+				showFlowChart: function(e) {
+					localStorage.setItem("pn",this.pgName);
+					window.open('/normalFlowChart.html', '_blank');
+					
+					return;
+				},
+				showFlowChart2: function(e) {
+					localStorage.setItem("pn",this.pgName);
+					window.open('/collapsibleFlowChart.html', '_blank');
+					
+					return;
+				}
+			  },
+			  computed: {
+				
+			  }
+			});
+			
+			
+			
+			
+			
+			document.addEventListener("click", function(e){
+				var ele = e.target;
+				var cn = ele.getAttribute("class");
+				if(cn === "sectionName") {
+					var k = document.getElementById(ele.innerHTML);
+					if(k) k.click();
+				}
+					
+				
+			});
+			
+			var pgname = localStorage.getItem("pn");
+			
+			var sectionList;
+			var sectionCallsList;
+			$.getJSON("/assets/"+pgname+".json", function(j) {
+			    app.setAllValues(j[0],j[1],j[2],j[3],pgname);
+			    sectionList = j[1];
+			    sectionCallsList = j[2];
+			});
+			
+			// other testing work....
+			
+
+			
+			
+			
+			
+		</script>
+	</body>
+</html>

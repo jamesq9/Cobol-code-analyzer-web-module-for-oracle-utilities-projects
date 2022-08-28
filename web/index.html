@@ -1,0 +1,236 @@
+<html>
+
+	<head>
+		<title>
+			ADDC Cobol Mapping Module
+		</title>
+		
+		<style>
+			::-webkit-scrollbar {
+				width: 4px;
+			}
+
+			
+			::-webkit-scrollbar-track {
+				box-shadow: inset 0 0 5px grey; 
+				border-radius: 10px;
+			}
+
+			
+			::-webkit-scrollbar-thumb {
+				background: grey; 
+				border-radius: 10px;
+			}		
+			.allCobolList {
+				width: 75%;
+				height: 95%;
+				overflow: auto;
+			}
+			
+			.allCobolList > span {
+				display: block;
+				border-radius: 8px;
+				border: 1px solid black;
+				font-family: "Arial";
+				margin: 5px 5px;
+				font-size: 14px;
+				width: 100px;
+				float: left;
+				text-align: center;
+			}
+			
+			
+			.rightside {
+				float: right;
+				width: 20%;
+				height: 90px;
+				margin-top: -47%;
+				margin-right: 4%;
+				margin-left: 10px;
+				height: 95%;
+				overflow: auto;
+				
+			}
+			
+			.selectedspan {
+				background-color: red;
+				color: white;
+				font-weight: bold;
+			}
+			
+			.highlightSpan1 {
+				background-color: green;
+				color: white;
+				font-weight: bold;
+			}
+			
+			.highlightSpan2 {
+				background-color: Orange;
+				color: white;
+				font-weight: bold;
+			}
+			
+			span {
+				cursor: pointer;
+			}
+			
+		</style>
+		
+	</head>
+	
+	<body onload="ready();">
+		
+		<div id="main">
+			
+			<div id="leftside">
+				<div id="search" style="margin-left: 10px; margin-bottom: 5px;">
+					<input type="text" id="progName" style="width:250px;" placeholder='Enter A Program Name To Search'/>
+					<input type="button" value="search" style="background-color: blue;color: white;font-weight: bold;border:1px solid blue;" onclick="dosamething();"/>  <b>Control Click on Below items to open them.</b>
+				</div>
+				
+				<div id="allCobolList" class="allCobolList">
+					
+				</div>
+			</div>
+			
+			<div id="rightside" class="rightside">
+			
+				
+				<h4 id="selProg"> </h4>
+			
+				<h4>The Below Programs are Present or Called in the Selected Program</h4>
+				<ol style="padding-left: 15px;" id="displist1">
+
+				</ol>  
+				
+				<h4>The Below Programs Call or Contain in them the Selected Program</h4>
+				<ol style="padding-left: 15px;" id="displist2">
+
+				</ol>  
+				
+								
+
+			</div>
+			
+		<div/>
+		
+		
+	</body>
+	
+	<script src="./js/jquery.js" > </script>
+	<script type="text/javascript">
+		var files = [];
+		
+		// Key File Has Values in it.
+		var map1 = {};
+		
+		// Values has Key Files in it.
+		var map2 = {};
+		
+		
+		function ready() {
+			
+			$.getJSON("/assets/mainData.json", function(j) {
+			    files = j["fileNames"];
+			    map1 = j["calls"];
+			    map2 = j["calledBy"];
+			   
+			    var ele = document.getElementById('allCobolList');
+				for(index in files) {
+					ele.innerHTML +=  "<span id='"+files[index]+"'> "+files[index]+" </span>";
+				}
+				
+				var spans = document.getElementsByTagName('span');
+				for(i=0;i<spans.length;i++)
+					spans[i].onclick=doSomething;
+				
+				
+			});
+			
+			
+			
+		}
+		
+		// button click
+		function dosamething() {
+			var text = document.getElementById('progName').value.toUpperCase().trim();
+			var s = document.getElementById(text);
+			if( s != null) {
+				document.getElementById('selProg').innerText = "Selected Program: " + text;
+				reset();
+				selectASpan(text);
+				highlightDependents(text);
+			}
+			
+		}
+		
+		// span click
+		function doSomething(e) {
+			
+			var text = this.innerText;
+			
+			if(isCTRL) {
+				localStorage.setItem("pn",text);
+				window.open('/analyzer.html', '_blank');
+				
+				return;
+			}
+			
+			document.getElementById('selProg').innerText = "Selected Program: " + text;
+			reset();
+			selectASpan(text);
+			highlightDependents(text);
+		}
+		
+		function reset() {
+			var spans = document.getElementsByTagName('span');
+			for(i=0;i<spans.length;i++)
+				spans[i].className="";
+		}
+		
+		function selectASpan(text) {
+			myspan = document.getElementById(text);
+			myspan.className = "selectedspan";
+		}
+		
+		function highlightDependents(text) {
+			hd1(text);
+			hd2(text);
+		}
+		
+		function hd1(text) {
+			var list = document.getElementById('displist1');
+			list.innerHTML = "";
+			var k = map1[text];
+			for(i in k) {
+				s = document.getElementById(k[i]);
+				s.className = "highlightSpan1";
+				list.innerHTML += "<li>"+s.innerText+"</li>";
+			}
+		}
+		
+		function hd2(text) {
+			var list = document.getElementById('displist2');
+			list.innerHTML = "";
+			var k = map2[text];
+			for(i in k) {
+				s = document.getElementById(k[i]);
+				s.className = "highlightSpan2";
+				list.innerHTML += "<li>"+s.innerText+"</li>";
+			}
+		}
+		
+		var isCTRL = false;
+		$(document).keydown(function(event){
+		    if(event.which=="17")
+		    	isCTRL = true;
+		});
+		
+		$(document).keyup(function(){
+			isCTRL = false;
+		});
+		
+	</script>
+
+
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<style>
+	/* required LIB STYLES */
+	/* .Treant se automatski dodaje na svaki chart conatiner */
+	.Treant { position: relative; overflow: hidden; padding: 0 !important; }
+	.Treant > .node,
+	.Treant > .pseudo { position: absolute; display: block; visibility: hidden; }
+	.Treant.loaded .node,
+	.Treant.loaded .pseudo { visibility: visible; }
+	.Treant > .pseudo { width: 0; height: 0; border: none; padding: 0; }
+	.Treant .collapse-switch { width: 3px; height: 3px; display: block; border: 1px solid black; position: absolute; top: 1px; right: 1px; cursor: pointer; }
+	.Treant .collapsed .collapse-switch { background-color: #868DEE; }
+	.Treant > .node img {	border: none; float: left; }
+	
+	table { border-collapse:collapse; border-spacing:0; }
+	fieldset,img { border:0; }
+	address,caption,cite,code,dfn,em,strong,th,var { font-style:normal; font-weight:normal; }
+	caption,th { text-align:left; }
+	h1,h2,h3,h4,h5,h6 { font-size:100%; font-weight:normal; }
+	q:before,q:after { content:''; }
+	abbr,acronym { border:0; }
+	
+	body { background: #fff; }
+	/* optional Container STYLES */
+	.chart { height: 600px; margin: 5px; width: 900px; }
+	.Treant > .node {  }
+	.Treant > p { font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; font-weight: bold; font-size: 12px; }
+	.node-name { font-weight: bold;}
+	
+	.nodeExample1 {
+	    padding: 2px;
+	    -webkit-border-radius: 3px;
+	    -moz-border-radius: 3px;
+	    border-radius: 3px;
+	    background-color: #ffffff;
+	    border: 1px solid #000;
+	    width: 200px;
+	    font-family: Tahoma;
+	    font-size: 12px;
+	}
+	
+	.nodeExample1 img {
+	    margin-right:  10px;
+	}
+</style>
+<title>Flow Chart</title>
+</head>
+<body>
+<div class="chart" id="basic-example"></div>
+<script src="js/raphael.js"></script>
+<script src="js/Treant.js"></script>
+<script src="js/jquery.js"></script>
+<script>
+	var pgname = localStorage.getItem("pn");
+	var sectionsOriginal;
+	$.getJSON("/assets/"+pgname+".json", function(j) {
+		sectionsOriginal = j[2];
+	    generateFlowChart();
+	})
+	
+	var chart_config = {};
+	var dp = {};
+	var sections = {};
+	var objects = {};
+	
+	function addChilds(sectionName){
+		if(dp[sectionName] != null){
+			return dp[sectionName];
+		}else{
+			var child = 	{	
+							text: {
+			                	name: sectionName
+			            	},
+			            	children: []
+            			};
+			if(sections[sectionName] != null){
+				for(var i=0;i<sections[sectionName].length;i++){
+					child.children.push(addChilds(sections[sectionName][i])); 
+				}	
+			}
+			
+			return dp[sectionName] = child;
+		}
+	}
+	
+	function init(){
+		
+		for(var sectionName in sectionsOriginal){
+			var map = {};
+			var sectionsCalled = sectionsOriginal[sectionName];
+			
+			for (var i = 0; i < sectionsCalled.length; i++){
+				if(sectionsCalled[i] != "UNTIL"){
+					if(sectionsCalled[i].trim().length > 0 ){
+						map[sectionsCalled[i]] = 1;	
+					}
+				}
+				
+			}
+			sections[sectionName] = Object.keys(map);
+		}
+		
+	}
+	
+	function generateFlowChart(){
+		
+		init();
+		chart_config["chart"] =   {
+						            container: "#basic-example",
+						            
+						            connectors: {
+						                type: 'step'
+						            },
+						            node: {
+						                HTMLclass: 'nodeExample1'
+						            }
+						        };
+		
+		
+		
+		chart_config["nodeStructure"] = {};
+		chart_config["nodeStructure"] = addChilds("AA000-MAIN");
+		console.log(chart_config);
+		new Treant( chart_config );
+		document.getElementById("basic-example").style.height = 'auto';
+		document.getElementById("basic-example").style.width = 'auto';
+	}
+	
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta charset="ISO-8859-1">
+      <title>Graph</title>
+      <style>
+      	
+      </style>
+   </head>
+   <body>
+   		<canvas id="myCanvas" width=28000 height=3000></canvas>
+   		<script src="js/jquery.js"></script>
+		<script src="js/jcanvas.js"></script>
+		<script src="js/vue.js"></script>
+   		<script>
+   		
+   		var pgname = localStorage.getItem("gn");
+		//console.log(pgname)
+		// CMPBXCTX , CMPCACPR
+		if(pgname != null)
+	   		$.getJSON("/assets/"+pgname+".json", function(j) {
+			    var sections = j[1];
+			    var sections_calls = j[2];
+			    //console.log(sections_calls);
+			    var section_name = {};
+			    //console.log(sections);
+			    for(i in sections) {
+			    	section_name[sections[i].sn] = {"row_pos": 0};
+			    	
+			    }	
+			    
+			    
+			    var rec = function(name,rp) {
+			    	if(section_name[name]) {
+				    	//console.log(name, section_name[name] )
+				    	if( section_name[name].row_pos < rp ) {
+				    		section_name[name].row_pos = rp;
+				    	}  
+				    	if(sections_calls[name]) {
+				    		//console.log(sections_calls[name]);
+				    		for(k in sections_calls[name]) {
+				    			//console.log("k is ",sections_calls[name][k], "name is " + name);
+				    			if(sections_calls[name][k])
+				    			rec(sections_calls[name][k], rp+1);
+				    		}
+				    	}
+			    	}
+			    	
+			    }
+			    
+			    for(key in section_name) {
+			    	//console.log(key);
+			    	rec(key,0);
+			    	
+			    }
+			    //console.log(section_name);
+			    
+			    var row_wise_data = {};
+			    var maxcols = 0;
+			    
+			    for( k in section_name) {
+			    	
+			    	if( !row_wise_data[section_name[k].row_pos] )
+			    		row_wise_data[section_name[k].row_pos] = [];
+			    	var l = row_wise_data[section_name[k].row_pos].length;
+			    	section_name[k].col_pos = l;
+			    	row_wise_data[section_name[k].row_pos].push(k);
+			    	if(l > maxcols) maxcols = l;
+			    }
+			    
+			   	//console.log(maxcols);
+			    //console.log(section_name);
+			    //console.log(row_wise_data);
+			   
+				
+			    var $myCanvas = $('#myCanvas');
+			    var c=document.getElementById("myCanvas");
+			    var ctx=c.getContext("2d");
+			    
+			    var x_mul = 300;
+			    var x_buff = 150;
+			    var y_mul = 170;
+			    var y_buff = 25;
+			    var y_top = -10;
+			    var y_bottom = -10;
+			    var x_side = 0;
+			    
+			    var measureTxtW = function(text) {
+			    	ctx.font="12px Calibri";
+			    	return ctx.measureText(text).width;
+			    }
+			    
+			   
+			    
+			    var drawLine = function(x1,y1,x2,y2,color) {
+			    	
+			    
+			    	
+			    	x1_start =  x_buff + (x1*x_mul) + x_side;
+			    	y1_start =  y_buff+(y1*y_mul) - y_bottom;
+			    	x2_start =  x_buff + (x2*x_mul) + x_side;
+			    	y2_start =  y_buff+(y2*y_mul) + y_top;
+			    	
+			    	
+			    	$myCanvas.drawLine({
+			    		  strokeStyle: color,
+			    		  strokeWidth: 0.9,
+			    		  x1: x1_start, y1: y1_start,
+			    		  x2: x2_start, y2: y2_start,
+			    		  
+			    		});
+			    }
+			    
+			    var writeText = function(text ,x  ,y) {
+			    	$myCanvas.drawText({
+			    		  text: text,
+			    		  fontFamily: 'Trebuchet MS, sans-serif,Calibri',
+			    		  fontSize: 15,
+			    		  x:  x_buff + (x*x_mul) , y:y_buff+(y*y_mul),
+			    		  fillStyle: '#36c',
+			    		  fontStyle: 'bold'
+			    		});
+			    }
+			    
+			   // write the contents
+			   for(i in row_wise_data) {
+				   //console.log(i, row_wise_data[i]);
+				   
+				   var row = i;
+				   var arr = row_wise_data[i];
+				   
+				   for(col in arr) {
+					   //console.log(col,arr[col]);
+					   writeText(arr[col],col,row);
+				   }
+			   }
+			    
+			   // demo draw line
+			   	 var colarray = ["#FF0000","#A8A8A8","#00FF00","#0A0A0A"];
+			     console.log(colarray);
+			     for(i in row_wise_data) {
+				   //console.log(i, row_wise_data[i]);
+				   
+				   var row = i;
+				   var arr = row_wise_data[i];
+				   
+				   for(col in arr) {
+					   //console.log(col,arr[col]);
+					   //writeText(arr[col],col,row);
+					   var top_node = arr[col];
+					   
+					   var start_x = section_name[top_node].row_pos;
+					   var start_y = section_name[top_node].col_pos;
+					   
+					   var bottom_node_list = sections_calls[top_node];
+					 	//console.log(top_node, bottom_node_list);
+					   
+					   
+					   if(bottom_node_list) {
+						   for(i in bottom_node_list) {
+							   var bottom_node = bottom_node_list[i];
+							   if(section_name[bottom_node]) {
+								   var end_x = section_name[bottom_node].row_pos;
+								   var end_y = section_name[bottom_node].col_pos;
+								   var color_pos = (row)%(colarray.length);
+								   drawLine(start_y,start_x,end_y,end_x,colarray[color_pos]);
+								   //console.log(row, colarray.length, color_pos, colarray[color_pos] );
+							   }
+						   }
+					   }
+				   }
+			   }
+			    
+			});
+
+   		</script>
+   </body>
+</html>
